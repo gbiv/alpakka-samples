@@ -5,6 +5,7 @@
 package samples.javadsl;
 
 // #imports
+
 import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -54,11 +55,15 @@ public class Main extends AllDirectives {
     private Materializer materializer;
 
     public Main(Helper helper) {
+        log.info("Initializing helper!");
         this.kafkaBootstrapServers = helper.kafkaBootstrapServers;
         this.helper = helper;
     }
 
     public static void main(String[] args) throws Exception {
+        log.info("Starting {}!", Main.class.getName());
+        System.getenv().entrySet().stream().filter(e -> e.getKey().startsWith("DD_"))
+                .forEach(e -> log.info("{}={}", e.getKey(), e.getValue()));
         Helper helper = new Helper();
         helper.startContainers();
         Main main = new Main(helper);
@@ -73,14 +78,14 @@ public class Main extends AllDirectives {
 
         // #websocket-handler
         Flow<Message, Message, ?> webSocketHandler =
-            Flow.fromSinkAndSource(
-                Sink.ignore(),
-                topicSource()
-                    // decouple clients from each other: if a client is too slow and more than 1000 elements to be sent to
-                    // to the client queue up here, we fail this client
-                    .buffer(1000, OverflowStrategy.fail())
-                    .via(addIndexFlow())
-                    .map(TextMessage::create));
+                Flow.fromSinkAndSource(
+                        Sink.ignore(),
+                        topicSource()
+                                // decouple clients from each other: if a client is too slow and more than 1000 elements to be sent to
+                                // to the client queue up here, we fail this client
+                                .buffer(1000, OverflowStrategy.fail())
+                                .via(addIndexFlow())
+                                .map(TextMessage::create));
         // #websocket-handler
 
         final Flow<HttpRequest, HttpResponse, ?> routeFlow = createRoute(webSocketHandler).flow(actorSystem, materializer);
@@ -96,10 +101,10 @@ public class Main extends AllDirectives {
     public Flow<String, String, NotUsed> addIndexFlow() {
         final Pair<Integer, String> seed = Pair.create(0, "start");
         return Flow.of(String.class)
-                   .scan(seed, (acc, message) -> {
-                       Integer index = acc.first();
-                       return Pair.create(index + 1, String.format("index: %s, message: %s", index, message));
-                   })
+                .scan(seed, (acc, message) -> {
+                    Integer index = acc.first();
+                    return Pair.create(index + 1, String.format("index: %s, message: %s", index, message));
+                })
                 .filterNot(p -> p == seed)
                 .map(Pair::second);
     }
@@ -119,18 +124,18 @@ public class Main extends AllDirectives {
     // #kafka-to-broadcast
     private Source<String, ?> topicSource() {
         ConsumerSettings<Integer, String> kafkaConsumerSettings =
-        ConsumerSettings.create(actorSystem, new IntegerDeserializer(), new StringDeserializer())
-                .withBootstrapServers(kafkaBootstrapServers)
-                .withGroupId(groupId)
-                .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-                .withStopTimeout(Duration.ofSeconds(5));
+                ConsumerSettings.create(actorSystem, new IntegerDeserializer(), new StringDeserializer())
+                        .withBootstrapServers(kafkaBootstrapServers)
+                        .withGroupId(groupId)
+                        .withProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+                        .withStopTimeout(Duration.ofSeconds(5));
 
         return
-            Consumer.plainSource(kafkaConsumerSettings, Subscriptions.topics(topic))
-                    .map(consumerRecord -> consumerRecord.value())
-                    // using a broadcast hub here, ensures that all websocket clients will use the same
-                    // consumer
-                    .runWith(BroadcastHub.of(String.class), materializer);
+                Consumer.plainSource(kafkaConsumerSettings, Subscriptions.topics(topic))
+                        .map(consumerRecord -> consumerRecord.value())
+                        // using a broadcast hub here, ensures that all websocket clients will use the same
+                        // consumer
+                        .runWith(BroadcastHub.of(String.class), materializer);
     }
     // #kafka-to-broadcast
 }
