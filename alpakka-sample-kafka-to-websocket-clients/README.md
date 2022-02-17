@@ -82,5 +82,5 @@ Once started you should see output in the log showing the configuration of the t
 Now, start the agent using the script and run the application as described above. 
 Go the APM page in Datadog and filter traces by `env:<DD_ENV>`
 
-Send some request to the `/push` endpoint and view the traces.
+Send some requests to the `/push` endpoint and view the traces.
 
