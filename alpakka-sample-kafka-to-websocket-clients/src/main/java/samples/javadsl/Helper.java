@@ -11,6 +11,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.KafkaContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.concurrent.CompletionStage;
 
@@ -25,7 +26,14 @@ public class Helper {
     }
 
     public void startContainers() {
-        kafka = new KafkaContainer("5.1.2"); // contains Kafka 2.1.x
+        log.info("Starting {}!", KafkaContainer.class.getName());
+        kafka = new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka"))
+                .withEnv("DD_SERVICE","kafka")
+                .withEnv("DD_ENV","local")
+                .withEnv("DD_TRACE_ENABLED","true")
+                .withEnv("DD_TRACE_ANALYTICS_ENABLED","true")
+                .withEnv("DD_TRACE_HEADER_TAGS","x-correlation-id:x-correlation-id")
+                .withEnv("DD_LOGS_INJECTION","true");
         kafka.start();
         kafkaBootstrapServers = kafka.getBootstrapServers();
     }
