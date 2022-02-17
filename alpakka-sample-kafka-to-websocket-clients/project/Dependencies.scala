@@ -18,7 +18,7 @@ object Dependencies {
     "ch.qos.logback" % "logback-classic" % "1.2.3",
     // #deps
 
-    "org.testcontainers" % "kafka" % "1.14.3",
+    "org.testcontainers" % "kafka" % "1.16.3",
 
     "com.typesafe.akka" %% "akka-stream-testkit" % AkkaVersion % Test,
     "com.google.guava" % "guava" % "28.2-jre" % Test,
